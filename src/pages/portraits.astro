@@ -1,9 +1,21 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import JustifiedGallery from "../components/JustifiedGallery.astro";
-import portraits from "../data/portraits.json";
+import { sanity, urlFor } from "../lib/sanity";
+
+const gallery = await sanity.fetch(`
+  *[_type == "photoGallery" && slug.current == "portraits"][0]{
+    title,
+    images
+  }
+`);
+
+const images =
+  gallery?.images?.map((image) =>
+    urlFor(image).width(1800).quality(85).url()
+  ) ?? [];
 ---
 
 <Layout title="Portraits — MADEBYAL">
-  <JustifiedGallery images={portraits.images} />
+  <JustifiedGallery images={images} />
 </Layout>
