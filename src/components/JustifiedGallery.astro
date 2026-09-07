@@ -1,0 +1,103 @@
+---
+const { images } = Astro.props;
+---
+
+<div class="justified-gallery" data-gallery>
+  {images.map((src) => (
+    <img
+      src={src}
+      alt=""
+      loading="lazy"
+    />
+  ))}
+</div>
+
+<script>
+  import justifiedLayout from "justified-layout";
+
+  const galleries = document.querySelectorAll("[data-gallery]");
+
+  galleries.forEach((gallery) => {
+    const images = Array.from(gallery.querySelectorAll("img"));
+
+    function waitForImages() {
+      return Promise.all(
+        images.map(
+          (img) =>
+            new Promise((resolve) => {
+              if (img.complete && img.naturalWidth > 0) {
+                resolve();
+              } else {
+                img.addEventListener("load", resolve, { once: true });
+                img.addEventListener("error", resolve, { once: true });
+              }
+            })
+        )
+      );
+    }
+
+    function layoutGallery() {
+      const width = gallery.clientWidth;
+
+      if (!width) return;
+
+      const ratios = images.map((img) => {
+        if (!img.naturalWidth || !img.naturalHeight) return 1;
+
+        return img.naturalWidth / img.naturalHeight;
+      });
+
+      const geometry = justifiedLayout(ratios, {
+        containerWidth: width,
+        targetRowHeight: 500,
+        targetRowHeightTolerance: 0.25,
+        boxSpacing: 10,
+        containerPadding: 0,
+      });
+
+      gallery.style.height = `${geometry.containerHeight}px`;
+
+      geometry.boxes.forEach((box, index) => {
+        const img = images[index];
+
+        img.style.position = "absolute";
+        img.style.left = `${box.left}px`;
+        img.style.top = `${box.top}px`;
+        img.style.width = `${box.width}px`;
+        img.style.height = `${box.height}px`;
+      });
+    }
+
+    waitForImages().then(() => {
+      layoutGallery();
+
+      const resizeObserver = new ResizeObserver(layoutGallery);
+      resizeObserver.observe(gallery);
+    });
+  });
+</script>
+
+<style>
+  .justified-gallery {
+    position: relative;
+    width: 100%;
+  }
+
+  .justified-gallery img {
+    display: block;
+    object-fit: cover;
+  }
+
+  @media (max-width: 760px) {
+    .justified-gallery img {
+      position: static !important;
+      width: 100% !important;
+      height: auto !important;
+      margin-bottom: 10px;
+    }
+
+    .justified-gallery {
+      height: auto !important;
+    }
+  }
+</style>

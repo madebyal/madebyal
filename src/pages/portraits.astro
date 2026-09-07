@@ -1,0 +1,9 @@
+---
+import Layout from "../layouts/Layout.astro";
+import JustifiedGallery from "../components/JustifiedGallery.astro";
+import portraits from "../data/portraits.json";
+---
+
+<Layout title="Portraits — MADEBYAL">
+  <JustifiedGallery images={portraits.images} />
+</Layout>
