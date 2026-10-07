@@ -9,15 +9,44 @@ const gallery = await sanity.fetch(
   `*[_type == "photoGallery" && slug.current == $slug][0]{
     title,
     homepageImage,
-    images
+    images[]{
+      ...,
+      "width": asset->metadata.dimensions.width,
+      "height": asset->metadata.dimensions.height
+    }
   }`,
   { slug }
 );
 
 const images =
-  gallery?.images?.map((image) =>
-    urlFor(image).width(1800).quality(85).url()
-  ) ?? [];
+  gallery?.images?.map((image) => {
+    const widths = [480, 768, 1200, 1600];
+
+    const srcset = widths
+      .map(
+        (width) =>
+          `${urlFor(image)
+            .width(width)
+            .fit("max")
+            .auto("format")
+            .quality(78)
+            .url()} ${width}w`
+      )
+      .join(", ");
+
+    return {
+      src: urlFor(image)
+        .width(1200)
+        .fit("max")
+        .auto("format")
+        .quality(78)
+        .url(),
+      srcset,
+      width: image.width,
+      height: image.height,
+      alt: image.alt ?? "",
+    };
+  }) ?? [];
 
 const socialImageSource =
   gallery?.homepageImage ?? gallery?.images?.[0];
@@ -58,4 +87,24 @@ const seoDescription =
   image={socialImage}
 >
   <JustifiedGallery images={images} />
+
+  <footer class="back">
+    <a href="/photography">← All Photography</a>
+  </footer>
 </Layout>
+
+<style>
+  .back {
+    margin-top: 28px;
+    padding-top: 22px;
+    border-top: 1px solid #ddd;
+  }
+
+  .back a {
+    font-size: 14px;
+  }
+
+  .back a:hover {
+    opacity: 0.55;
+  }
+</style>

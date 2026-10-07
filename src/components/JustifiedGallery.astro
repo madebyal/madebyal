@@ -3,11 +3,16 @@ const { images } = Astro.props;
 ---
 
 <div class="justified-gallery" data-gallery>
-  {images.map((src) => (
+  {images.map((image, index) => (
     <img
-      src={src}
-      alt=""
-      loading="lazy"
+      src={image.src}
+      srcset={image.srcset}
+      sizes="(max-width: 760px) calc(100vw - 32px), calc(100vw - 300px)"
+      width={image.width}
+      height={image.height}
+      alt={image.alt}
+      loading={index < 3 ? "eager" : "lazy"}
+      fetchpriority={index < 2 ? "high" : "auto"}
     />
   ))}
 </div>
@@ -20,31 +25,18 @@ const { images } = Astro.props;
   galleries.forEach((gallery) => {
     const images = Array.from(gallery.querySelectorAll("img"));
 
-    function waitForImages() {
-      return Promise.all(
-        images.map(
-          (img) =>
-            new Promise((resolve) => {
-              if (img.complete && img.naturalWidth > 0) {
-                resolve();
-              } else {
-                img.addEventListener("load", resolve, { once: true });
-                img.addEventListener("error", resolve, { once: true });
-              }
-            })
-        )
-      );
-    }
-
     function layoutGallery() {
       const width = gallery.clientWidth;
 
-      if (!width) return;
+      if (!width || !images.length) return;
 
       const ratios = images.map((img) => {
-        if (!img.naturalWidth || !img.naturalHeight) return 1;
+        const width = Number(img.getAttribute("width"));
+        const height = Number(img.getAttribute("height"));
 
-        return img.naturalWidth / img.naturalHeight;
+        if (!width || !height) return 1;
+
+        return width / height;
       });
 
       const geometry = justifiedLayout(ratios, {
@@ -60,20 +52,19 @@ const { images } = Astro.props;
       geometry.boxes.forEach((box, index) => {
         const img = images[index];
 
-        img.style.position = "absolute";
         img.style.left = `${box.left}px`;
         img.style.top = `${box.top}px`;
         img.style.width = `${box.width}px`;
         img.style.height = `${box.height}px`;
       });
+
+      gallery.classList.add("is-ready");
     }
 
-    waitForImages().then(() => {
-      layoutGallery();
+    layoutGallery();
 
-      const resizeObserver = new ResizeObserver(layoutGallery);
-      resizeObserver.observe(gallery);
-    });
+    const resizeObserver = new ResizeObserver(layoutGallery);
+    resizeObserver.observe(gallery);
   });
 </script>
 
@@ -84,13 +75,19 @@ const { images } = Astro.props;
   }
 
   .justified-gallery img {
+    position: absolute;
     display: block;
     object-fit: cover;
+    visibility: hidden;
+  }
+
+  .justified-gallery.is-ready img {
+    visibility: visible;
   }
 
   @media (max-width: 760px) {
     .justified-gallery img {
-      position: static !important;
+      position: static;
       width: 100% !important;
       height: auto !important;
       margin-bottom: 10px;
