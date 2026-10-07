@@ -5,31 +5,56 @@ import { sanity, urlFor } from "../../lib/sanity";
 const projects = await sanity.fetch(`
   *[_type == "filmProject"] | order(featured desc, featuredOrder asc, _createdAt desc) {
     title,
-    "slug": slug.current,
     category,
-    poster,
-    client,
-    year,
-    featured
+    poster
   }
 `);
 
-const categoryLabels: Record<string, string> = {
-  documentary: "Documentary",
-  podcast: "People + Ideas",
-  events: "Events",
-  commercial: "Commercial",
-  "film-music": "Film + Music",
-};
+function imageFor(category: string) {
+  const project = projects.find(
+    (project: any) => project.category === category && project.poster
+  );
 
-function posterUrl(poster: any) {
-  if (!poster) return null;
+  if (!project?.poster) return null;
 
-  return urlFor(poster)
+  return urlFor(project.poster)
     .width(1800)
     .quality(85)
     .url();
 }
+
+const categories = [
+  {
+    title: "Documentary",
+    slug: "documentary",
+    href: "/film/documentary",
+    image: imageFor("documentary"),
+  },
+  {
+    title: "People + Ideas",
+    slug: "people-ideas",
+    href: "/film/people-ideas",
+    image: imageFor("podcast"),
+  },
+  {
+    title: "Events",
+    slug: "events",
+    href: "/film/events",
+    image: imageFor("events"),
+  },
+  {
+    title: "Commercial",
+    slug: "commercial",
+    href: "/film/commercial",
+    image: imageFor("commercial"),
+  },
+  {
+    title: "Film + Music",
+    slug: "film-music",
+    href: "/film/film-music",
+    image: imageFor("film-music"),
+  },
+];
 ---
 
 <Layout
@@ -46,36 +71,26 @@ function posterUrl(poster: any) {
     </p>
   </section>
 
-  <section class="project-grid">
+  <section class="category-grid">
     {
-      projects.map((project, index) => (
+      categories.map((category, index) => (
         <a
-          class:list={["project", { wide: index % 3 === 0 }]}
-          href={`/film/project/${project.slug}`}
+          class:list={["category", { wide: index === 4 }]}
+          href={category.href}
         >
-          {
-            project.poster ? (
-              <img
-                src={posterUrl(project.poster)}
-                alt={project.title}
-                loading={index === 0 ? "eager" : "lazy"}
-              />
-            ) : (
-              <div class="placeholder"></div>
-            )
-          }
+          {category.image ? (
+            <img
+              src={category.image}
+              alt={`${category.title} film work by Al Ibrahim`}
+              loading={index === 0 ? "eager" : "lazy"}
+            />
+          ) : (
+            <div class="placeholder"></div>
+          )}
 
           <div class="meta">
-            <div>
-              <h2>{project.title}</h2>
-
-              <p>
-                {categoryLabels[project.category] ?? project.category}
-                {project.client ? ` · ${project.client}` : ""}
-              </p>
-            </div>
-
-            {project.year && <span>{project.year}</span>}
+            <h2>{category.title}</h2>
+            <span>View work →</span>
           </div>
         </a>
       ))
@@ -110,32 +125,32 @@ function posterUrl(poster: any) {
     color: #555;
   }
 
-  .project-grid {
+  .category-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 48px 20px;
     padding-bottom: 80px;
   }
 
-  .project {
+  .category {
     display: block;
   }
 
-  .project.wide {
+  .category.wide {
     grid-column: 1 / -1;
   }
 
-  .project img,
+  .category img,
   .placeholder {
     display: block;
     width: 100%;
     aspect-ratio: 4 / 3;
     object-fit: cover;
-    background: #111;
+    background: #eee;
   }
 
-  .project.wide img,
-  .project.wide .placeholder {
+  .category.wide img,
+  .category.wide .placeholder {
     aspect-ratio: 16 / 9;
   }
 
@@ -147,39 +162,33 @@ function posterUrl(poster: any) {
   }
 
   .meta h2,
-  .meta p,
   .meta span {
     margin: 0;
     font-size: 14px;
     font-weight: 400;
   }
 
-  .meta p,
   .meta span {
     color: #777;
   }
 
-  .meta p {
-    margin-top: 3px;
-  }
-
-  .project:hover {
+  .category:hover {
     opacity: 0.75;
   }
 
   @media (max-width: 900px) {
-    .project-grid {
+    .category-grid {
       grid-template-columns: 1fr;
     }
 
-    .project.wide {
+    .category.wide {
       grid-column: auto;
     }
 
-    .project img,
-    .project.wide img,
+    .category img,
+    .category.wide img,
     .placeholder,
-    .project.wide .placeholder {
+    .category.wide .placeholder {
       aspect-ratio: 4 / 3;
     }
   }
