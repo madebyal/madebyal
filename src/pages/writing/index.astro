@@ -1,0 +1,237 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { sanity, urlFor } from "../../lib/sanity";
+
+const writingProjects = await sanity.fetch(`
+  *[_type == "writingProject"]
+  | order(featured desc, featuredOrder asc, year desc, _createdAt desc) {
+    title,
+    "slug": slug.current,
+    type,
+    year,
+    coverImage,
+    summary,
+    externalUrl
+  }
+`);
+
+const typeLabels: Record<string, string> = {
+  book: "Book",
+  zine: "Zine",
+  essay: "Essay",
+  publication: "Publication",
+  other: "Other",
+};
+
+function coverUrl(image: any) {
+  if (!image) return null;
+
+  return urlFor(image)
+    .width(1400)
+    .quality(88)
+    .url();
+}
+---
+
+<Layout
+  title="Writing — Essays, Zines & Publications | MADEBYAL"
+  description="Writing by Al Amin Ibrahim, including essays, observations, publications, zines, books and ongoing notes from Garage."
+>
+  <section class="writing-page">
+
+    <header class="intro">
+      <p class="eyebrow">Writing</p>
+
+      <h1>Words, notes and longer-form work.</h1>
+
+      <p class="description">
+        Essays, observations, publications, zines and books.
+      </p>
+    </header>
+
+    <section class="writing-list">
+
+      <a
+        class="writing-item garage"
+        href="https://garage.madebyal.net"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <div class="cover garage-cover">
+          <span>Garage</span>
+        </div>
+
+        <div class="item-copy">
+          <div>
+            <p class="type">Blog</p>
+            <h2>Garage</h2>
+          </div>
+
+          <p class="summary">
+            Notes, essays, observations and things I’m thinking through.
+          </p>
+
+          <span class="action">Visit Garage ↗</span>
+        </div>
+      </a>
+
+      {
+        writingProjects.map((project) => {
+          const href = project.externalUrl || `/writing/${project.slug}`;
+          const external = Boolean(project.externalUrl);
+
+          return (
+            <a
+              class="writing-item"
+              href={href}
+              target={external ? "_blank" : undefined}
+              rel={external ? "noopener noreferrer" : undefined}
+            >
+              <div class="cover">
+                {
+                  project.coverImage ? (
+                    <img
+                      src={coverUrl(project.coverImage)}
+                      alt={project.coverImage?.alt || project.title}
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div class="cover-placeholder"></div>
+                  )
+                }
+              </div>
+
+              <div class="item-copy">
+                <div>
+                  <p class="type">
+                    {typeLabels[project.type] ?? project.type}
+                  </p>
+
+                  <h2>{project.title}</h2>
+                </div>
+
+                {project.summary && (
+                  <p class="summary">{project.summary}</p>
+                )}
+
+                <span class="action">
+                  {external ? "Open ↗" : "Read more →"}
+                </span>
+              </div>
+            </a>
+          );
+        })
+      }
+
+    </section>
+  </section>
+</Layout>
+
+<style>
+  .writing-page {
+    width: 100%;
+    padding: 18px 0 100px;
+  }
+
+  .intro {
+    max-width: 900px;
+    padding-bottom: 60px;
+  }
+
+  .eyebrow,
+  .type {
+    margin: 0 0 12px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.55;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(42px, 5vw, 76px);
+    line-height: 0.98;
+    letter-spacing: -0.045em;
+  }
+
+  .description {
+    margin: 22px 0 0;
+    font-size: 18px;
+    color: #555;
+  }
+
+  .writing-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 52px 20px;
+  }
+
+  .writing-item {
+    display: block;
+  }
+
+  .cover,
+  .cover img,
+  .cover-placeholder,
+  .garage-cover {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 5;
+  }
+
+  .cover img {
+    object-fit: cover;
+  }
+
+  .cover-placeholder {
+    background: #eee;
+  }
+
+  .garage-cover {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #111;
+    color: #fff;
+    font-size: clamp(34px, 4vw, 56px);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+  }
+
+  .item-copy {
+    padding-top: 12px;
+  }
+
+  .item-copy h2 {
+    margin: 0;
+    font-size: 24px;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  .summary {
+    max-width: 520px;
+    margin: 12px 0 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #555;
+  }
+
+  .action {
+    display: inline-block;
+    margin-top: 14px;
+    font-size: 14px;
+    color: #777;
+  }
+
+  .writing-item:hover {
+    opacity: 0.7;
+  }
+
+  @media (max-width: 900px) {
+    .writing-list {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

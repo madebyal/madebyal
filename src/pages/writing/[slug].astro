@@ -1,0 +1,234 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { PortableText } from "@portabletext/astro";
+import { sanity, urlFor } from "../../lib/sanity";
+
+export async function getStaticPaths() {
+  const projects = await sanity.fetch(`
+    *[_type == "writingProject" && defined(slug.current)]{
+      "slug": slug.current
+    }
+  `);
+
+  return projects.map((project) => ({
+    params: { slug: project.slug },
+  }));
+}
+
+const { slug } = Astro.params;
+
+const project = await sanity.fetch(
+  `
+    *[_type == "writingProject" && slug.current == $slug][0]{
+      title,
+      type,
+      year,
+      coverImage,
+      summary,
+      body,
+      externalUrl,
+      pdfUrl
+    }
+  `,
+  { slug }
+);
+
+if (!project) {
+  return Astro.redirect("/writing");
+}
+
+const typeLabels: Record<string, string> = {
+  book: "Book",
+  zine: "Zine",
+  essay: "Essay",
+  publication: "Publication",
+  other: "Other",
+};
+
+const cover = project.coverImage
+  ? urlFor(project.coverImage).width(1400).quality(88).url()
+  : null;
+
+const seoTitle =
+  `${project.title} — ${typeLabels[project.type] ?? "Writing"} | MADEBYAL`;
+
+const seoDescription =
+  project.summary ||
+  `${project.title} — writing by Al Amin Ibrahim, Berlin-based filmmaker, photographer and writer.`;
+---
+
+<Layout
+  title={seoTitle}
+  description={seoDescription}
+  image={cover}
+>
+  <article class="writing-project">
+
+    <header class="header">
+      <div>
+        <p class="eyebrow">
+          {typeLabels[project.type] ?? project.type}
+        </p>
+
+        <h1>{project.title}</h1>
+
+        {project.summary && (
+          <p class="summary">{project.summary}</p>
+        )}
+      </div>
+
+      {project.year && <p class="year">{project.year}</p>}
+    </header>
+
+    <section class="content-grid">
+      {
+        cover && (
+          <img
+            class="cover"
+            src={cover}
+            alt={project.coverImage?.alt || project.title}
+          />
+        )
+      }
+
+      <div class="body">
+        {
+          project.body?.length > 0 && (
+            <PortableText value={project.body} />
+          )
+        }
+
+        <div class="links">
+          {
+            project.externalUrl && (
+              <a
+                href={project.externalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Visit external page ↗
+              </a>
+            )
+          }
+
+          {
+            project.pdfUrl && (
+              <a
+                href={project.pdfUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                View PDF ↗
+              </a>
+            )
+          }
+        </div>
+      </div>
+    </section>
+
+    <footer class="back">
+      <a href="/writing">← All Writing</a>
+    </footer>
+
+  </article>
+</Layout>
+
+<style>
+  .writing-project {
+    padding: 18px 0 100px;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    gap: 40px;
+    align-items: flex-end;
+    padding-bottom: 50px;
+  }
+
+  .eyebrow {
+    margin: 0 0 12px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.55;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(42px, 5vw, 76px);
+    line-height: 0.98;
+    letter-spacing: -0.045em;
+  }
+
+  .summary {
+    max-width: 680px;
+    margin: 22px 0 0;
+    font-size: 19px;
+    line-height: 1.5;
+    color: #555;
+  }
+
+  .year {
+    margin: 0;
+    color: #777;
+  }
+
+  .content-grid {
+    display: grid;
+    grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr);
+    gap: 70px;
+    padding-top: 40px;
+    border-top: 1px solid #ddd;
+  }
+
+  .cover {
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+  }
+
+  .body {
+    max-width: 760px;
+  }
+
+  .body :global(p) {
+    margin: 0 0 26px;
+    font-size: 17px;
+    line-height: 1.65;
+  }
+
+  .body :global(h2) {
+    margin: 46px 0 18px;
+    font-size: 28px;
+  }
+
+  .links {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-top: 40px;
+  }
+
+  .links a {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .back {
+    margin-top: 70px;
+    padding-top: 30px;
+    border-top: 1px solid #ddd;
+  }
+
+  @media (max-width: 900px) {
+    .content-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .cover {
+      max-width: 520px;
+    }
+  }
+</style>

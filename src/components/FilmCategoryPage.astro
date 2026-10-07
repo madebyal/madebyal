@@ -1,0 +1,228 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { sanity, urlFor } from "../lib/sanity";
+
+const { category, title } = Astro.props;
+
+const projects = await sanity.fetch(
+  `
+    *[_type == "filmProject" && category == $category]
+    | order(featured desc, featuredOrder asc, _createdAt desc) {
+      title,
+      "slug": slug.current,
+      category,
+      poster,
+      client,
+      year
+    }
+  `,
+  { category }
+);
+
+function posterUrl(poster: any) {
+  if (!poster) return null;
+
+  return urlFor(poster)
+    .width(1800)
+    .quality(85)
+    .url();
+}
+
+const firstPoster = projects?.[0]?.poster
+  ? posterUrl(projects[0].poster)
+  : null;
+
+const seoTitles: Record<string, string> = {
+  documentary: "Documentary Filmmaker Berlin | MADEBYAL",
+  podcast: "People + Ideas — Interviews, Courses & Podcasts | MADEBYAL",
+  events: "Event Filmmaker Berlin | MADEBYAL",
+  commercial: "Commercial Filmmaker Berlin | MADEBYAL",
+  "film-music": "Film + Music — Creative Film Work | MADEBYAL",
+};
+
+const seoDescriptions: Record<string, string> = {
+  documentary:
+    "Documentary film work by Berlin-based filmmaker Al Amin Ibrahim, focused on people, real stories and human connection.",
+  podcast:
+    "People-led video work by Berlin-based filmmaker Al Amin Ibrahim, including interviews, talking-head videos, expert-led content, online courses and podcasts.",
+  events:
+    "Event filmmaking in Berlin and across Europe by Al Amin Ibrahim, capturing people, atmosphere and meaningful moments.",
+  commercial:
+    "Commercial film work by Berlin-based filmmaker Al Amin Ibrahim for startups, organisations and creative teams across Germany and Europe.",
+  "film-music":
+    "Film and music-related work by Berlin-based filmmaker Al Amin Ibrahim, including music videos, creative films and visual storytelling.",
+};
+
+const seoTitle =
+  seoTitles[category] ?? `${title} Film — MADEBYAL`;
+
+const seoDescription =
+  seoDescriptions[category] ??
+  `${title} film work by Berlin-based filmmaker Al Ibrahim.`;
+---
+
+<Layout
+  title={seoTitle}
+  description={seoDescription}
+  image={firstPoster}
+>
+  <section class="intro">
+    <p class="eyebrow">Film</p>
+    <h1>{title}</h1>
+  </section>
+
+  {
+    projects.length > 0 ? (
+      <section class="project-grid">
+        {projects.map((project, index) => (
+          <a
+            class:list={["project", { wide: index % 3 === 0 }]}
+            href={`/film/project/${project.slug}`}
+          >
+            {project.poster ? (
+              <img
+                src={posterUrl(project.poster)}
+                alt={project.title}
+                loading={index === 0 ? "eager" : "lazy"}
+              />
+            ) : (
+              <div class="placeholder"></div>
+            )}
+
+            <div class="meta">
+              <div>
+                <h2>{project.title}</h2>
+
+                {project.client && <p>{project.client}</p>}
+              </div>
+
+              {project.year && <span>{project.year}</span>}
+            </div>
+          </a>
+        ))}
+      </section>
+    ) : (
+      <p class="empty">Work coming soon.</p>
+    )
+  }
+
+  <footer class="back">
+    <a href="/film">← All Film</a>
+  </footer>
+</Layout>
+
+<style>
+  .intro {
+    padding: 18px 0 48px;
+  }
+
+  .eyebrow {
+    margin: 0 0 12px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.55;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(36px, 4vw, 58px);
+    line-height: 1;
+    letter-spacing: -0.045em;
+  }
+
+  .project-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 48px 20px;
+    padding-bottom: 28px;
+  }
+
+  .project {
+    display: block;
+  }
+
+  .project.wide {
+    grid-column: 1 / -1;
+  }
+
+  .project img,
+  .placeholder {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    background: #111;
+  }
+
+  .project.wide img,
+  .project.wide .placeholder {
+    aspect-ratio: 16 / 9;
+  }
+
+  .meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    margin-top: 10px;
+  }
+
+  .meta h2,
+  .meta p,
+  .meta span {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 400;
+  }
+
+  .meta p,
+  .meta span {
+    color: #777;
+  }
+
+  .meta p {
+    margin-top: 3px;
+  }
+
+  .project:hover {
+    opacity: 0.75;
+  }
+
+  .empty {
+    margin: 0;
+    color: #777;
+    font-size: 16px;
+  }
+
+  .back {
+    margin-top: 28px;
+    padding-top: 22px;
+    border-top: 1px solid #ddd;
+  }
+
+  .back a {
+    font-size: 14px;
+  }
+
+  .back a:hover {
+    opacity: 0.55;
+  }
+
+  @media (max-width: 900px) {
+    .project-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .project.wide {
+      grid-column: auto;
+    }
+
+    .project img,
+    .project.wide img,
+    .placeholder,
+    .project.wide .placeholder {
+      aspect-ratio: 4 / 3;
+    }
+  }
+</style>

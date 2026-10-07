@@ -1,0 +1,187 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { sanity, urlFor } from "../../lib/sanity";
+
+const galleries = await sanity.fetch(`
+  *[_type == "photoGallery" && slug.current in ["events", "portraits", "editorial"]]{
+    title,
+    "slug": slug.current,
+    homepageImage,
+    images
+  }
+`);
+
+function getGallery(slug: string) {
+  return galleries.find((gallery) => gallery.slug === slug);
+}
+
+function imageFor(slug: string) {
+  const gallery = getGallery(slug);
+  const image = gallery?.homepageImage ?? gallery?.images?.[0];
+
+  if (!image) return null;
+
+  return urlFor(image)
+    .width(1800)
+    .quality(85)
+    .url();
+}
+
+const categories = [
+  {
+    title: "Events",
+    slug: "events",
+    href: "/photography/events",
+    image: imageFor("events"),
+  },
+  {
+    title: "Portraits",
+    slug: "portraits",
+    href: "/photography/portraits",
+    image: imageFor("portraits"),
+  },
+  {
+    title: "Documentary / Editorial",
+    slug: "editorial",
+    href: "/photography/documentary-editorial",
+    image: imageFor("editorial"),
+  },
+];
+---
+
+<Layout
+  title="Photographer in Berlin — Events, Portraits & Editorial | MADEBYAL"
+  description="Berlin-based photographer Al Amin Ibrahim shooting events, portraits, documentary and editorial photography across Germany and Europe."
+>
+  <section class="intro">
+    <p class="eyebrow">Photography</p>
+
+    <h1>People, moments and atmosphere.</h1>
+
+    <p class="description">
+      Events, portraits and documentary / editorial photography.
+    </p>
+  </section>
+
+  <section class="category-grid">
+    {
+      categories.map((category, index) => (
+        <a
+          class:list={["category", { wide: index === 2 }]}
+          href={category.href}
+        >
+          {category.image ? (
+            <img
+              src={category.image}
+              alt={`${category.title} photography by Al Ibrahim`}
+              loading={index === 0 ? "eager" : "lazy"}
+            />
+          ) : (
+            <div class="placeholder"></div>
+          )}
+
+          <div class="meta">
+            <h2>{category.title}</h2>
+            <span>View work →</span>
+          </div>
+        </a>
+      ))
+    }
+  </section>
+</Layout>
+
+<style>
+  .intro {
+    padding: 18px 0 48px;
+  }
+
+  .eyebrow {
+    margin: 0 0 12px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.55;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(36px, 4vw, 58px);
+    line-height: 1;
+    letter-spacing: -0.045em;
+  }
+
+  .description {
+    margin: 18px 0 0;
+    font-size: 16px;
+    color: #555;
+  }
+
+  .category-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 48px 20px;
+    padding-bottom: 80px;
+  }
+
+  .category {
+    display: block;
+  }
+
+  .category.wide {
+    grid-column: 1 / -1;
+  }
+
+  .category img,
+  .placeholder {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    background: #eee;
+  }
+
+  .category.wide img,
+  .category.wide .placeholder {
+    aspect-ratio: 16 / 9;
+  }
+
+  .meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    margin-top: 10px;
+  }
+
+  .meta h2,
+  .meta span {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 400;
+  }
+
+  .meta span {
+    color: #777;
+  }
+
+  .category:hover {
+    opacity: 0.75;
+  }
+
+  @media (max-width: 900px) {
+    .category-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .category.wide {
+      grid-column: auto;
+    }
+
+    .category img,
+    .category.wide img,
+    .placeholder,
+    .category.wide .placeholder {
+      aspect-ratio: 4 / 3;
+    }
+  }
+</style>

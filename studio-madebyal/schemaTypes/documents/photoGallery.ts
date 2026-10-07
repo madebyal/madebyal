@@ -24,6 +24,24 @@ export const photoGallery = defineType({
     }),
 
     defineField({
+      name: 'homepageImage',
+      title: 'Homepage Image',
+      type: 'image',
+      description:
+        'The image used to represent this gallery in Selected Work on the homepage.',
+      options: {
+        hotspot: true,
+      },
+      fields: [
+        {
+          name: 'alt',
+          title: 'Alt text',
+          type: 'string',
+        },
+      ],
+    }),
+
+    defineField({
       name: 'images',
       title: 'Images',
       type: 'array',
@@ -48,7 +66,7 @@ export const photoGallery = defineType({
   preview: {
     select: {
       title: 'title',
-      media: 'images.0',
+      media: 'homepageImage',
     },
   },
 })

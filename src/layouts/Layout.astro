@@ -1,68 +1,354 @@
 ---
-const { title = "MADEBYAL" } = Astro.props;
+import { sanity } from "../lib/sanity";
+
+const {
+  title = "MADEBYAL",
+  description = "Al Amin — Berlin-based filmmaker and photographer working across documentary, events, portraits, commercial projects and people-led stories.",
+  image,
+  canonical,
+  noindex = false,
+} = Astro.props;
+
+const siteUrl = "https://madebyal.net";
+
+const canonicalUrl =
+  canonical ??
+  new URL(Astro.url.pathname, siteUrl).toString();
+
+const socialImage = image
+  ? new URL(image, siteUrl).toString()
+  : null;
+
+const navProjects = await sanity.fetch(`
+  *[_type == "project"]
+  | order(featured desc, featuredOrder asc, _createdAt desc) [0...6] {
+    title,
+    "slug": slug.current
+  }
+`);
+
+const navWriting = await sanity.fetch(`
+  *[_type == "writingProject"]
+  | order(featured desc, featuredOrder asc, year desc, _createdAt desc) [0...8] {
+    title,
+    "slug": slug.current
+  }
+`);
 ---
 
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+
+    <title>{title}</title>
+
     <meta
       name="description"
-      content="MADEBYAL — photography, film and writing by Al Ibrahim"
+      content={description}
     />
-    <title>{title}</title>
+
+    <meta
+      name="robots"
+      content={noindex ? "noindex, nofollow" : "index, follow"}
+    />
+
+    <link
+      rel="canonical"
+      href={canonicalUrl}
+    />
+
+    <!-- OPEN GRAPH -->
+    <meta
+      property="og:type"
+      content="website"
+    />
+
+    <meta
+      property="og:site_name"
+      content="MADEBYAL"
+    />
+
+    <meta
+      property="og:title"
+      content={title}
+    />
+
+    <meta
+      property="og:description"
+      content={description}
+    />
+
+    <meta
+      property="og:url"
+      content={canonicalUrl}
+    />
+
+    {
+      socialImage && (
+        <meta
+          property="og:image"
+          content={socialImage}
+        />
+      )
+    }
+
+    <!-- TWITTER / SOCIAL -->
+    <meta
+      name="twitter:card"
+      content={socialImage ? "summary_large_image" : "summary"}
+    />
+
+    <meta
+      name="twitter:title"
+      content={title}
+    />
+
+    <meta
+      name="twitter:description"
+      content={description}
+    />
+
+    {
+      socialImage && (
+        <meta
+          name="twitter:image"
+          content={socialImage}
+        />
+      )
+    }
+
+    <meta
+      name="theme-color"
+      content="#ffffff"
+    />
+
+    <!-- FONTS -->
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    />
+
+    <link
+      rel="preconnect"
+      href="https://fonts.gstatic.com"
+      crossorigin
+    />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Nunito+Sans:opsz,wght@6..12,400;6..12,500;6..12,600;6..12,700&display=swap"
+      rel="stylesheet"
+    />
   </head>
 
   <body>
+
+    <!-- DESKTOP SIDEBAR -->
     <aside class="sidebar">
       <a class="logo" href="/">MADEBYAL</a>
 
       <nav>
-        <div class="section">
-          <a class="section-title" href="/">PHOTOS</a>
-          <a href="/overview">Overview</a>
-          <a href="/portraits">Portraits</a>
-          <a href="/events">Events</a>
-          <a href="/editorial">Editorial</a>
-          <a href="/behind-the-scenes">Behind the Scenes</a>
+        <div class="nav-group">
+          <div class="group-title">WORK</div>
+
+          <details class="section">
+            <summary>Film</summary>
+
+            <div class="submenu">
+              <a href="/film/documentary">Documentary</a>
+              <a href="/film/people-ideas">People + Ideas</a>
+              <a href="/film/events">Events</a>
+              <a href="/film/commercial">Commercial</a>
+              <a href="/film/film-music">Film + Music</a>
+            </div>
+          </details>
+
+          <details class="section">
+            <summary>Photography</summary>
+
+            <div class="submenu">
+              <a href="/photography/events">Events</a>
+              <a href="/photography/portraits">Portraits</a>
+
+              <a href="/photography/documentary-editorial">
+                Documentary / Editorial
+              </a>
+            </div>
+          </details>
+
+          <details class="section">
+            <summary>Projects</summary>
+
+            <div class="submenu">
+              {
+                navProjects.map((project) => (
+                  <a href={`/projects/${project.slug}`}>
+                    {project.title}
+                  </a>
+                ))
+              }
+            </div>
+          </details>
+
+          <details class="section">
+            <summary>Writing</summary>
+
+            <div class="submenu">
+              <a
+                class="external"
+                href="https://garage.madebyal.net"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Garage ↗
+              </a>
+
+              {
+                navWriting.map((item) => (
+                  <a href={`/writing/${item.slug}`}>
+                    {item.title}
+                  </a>
+                ))
+              }
+            </div>
+          </details>
         </div>
 
-        <div class="section">
-          <a class="section-title" href="/videos">VIDEOS</a>
-          <a href="/showreel">Showreel</a>
-          <a href="/youtube">Youtube Videos</a>
-          <a href="/music-videos">Music Videos</a>
-          <a href="/short-films">Short Films</a>
-          <a href="/short-docs">Short Docs</a>
-          <a href="/personal">Personal</a>
-        </div>
+        <div class="nav-group">
+          <div class="group-title">INFO</div>
 
-        <div class="section">
-          <a class="section-title" href="/words">WORDS</a>
-        </div>
-
-        <div class="section">
-          <a class="section-title" href="/projects">OTHER PROJECTS</a>
-        </div>
-
-        <div class="secondary">
-          <a href="/about">About</a>
-          <a href="/now">Now</a>
-          <a href="/contact">Contact</a>
+          <div class="section info-links">
+            <a href="/about">About</a>
+            <a href="/now">Now</a>
+            <a href="/contact">Contact</a>
+          </div>
         </div>
       </nav>
     </aside>
 
+
+    <!-- MOBILE HEADER -->
+    <header class="mobile-header">
+      <a class="mobile-logo" href="/">MADEBYAL</a>
+
+      <details class="mobile-menu">
+        <summary>Menu</summary>
+
+        <div class="mobile-panel">
+          <div class="mobile-nav-group">
+            <p class="mobile-group-title">WORK</p>
+
+            <details class="mobile-section">
+              <summary>Film</summary>
+
+              <div class="mobile-submenu">
+                <a href="/film/documentary">Documentary</a>
+                <a href="/film/people-ideas">People + Ideas</a>
+                <a href="/film/events">Events</a>
+                <a href="/film/commercial">Commercial</a>
+                <a href="/film/film-music">Film + Music</a>
+              </div>
+            </details>
+
+            <details class="mobile-section">
+              <summary>Photography</summary>
+
+              <div class="mobile-submenu">
+                <a href="/photography/events">Events</a>
+                <a href="/photography/portraits">Portraits</a>
+
+                <a href="/photography/documentary-editorial">
+                  Documentary / Editorial
+                </a>
+              </div>
+            </details>
+
+            <details class="mobile-section">
+              <summary>Projects</summary>
+
+              <div class="mobile-submenu">
+                {
+                  navProjects.map((project) => (
+                    <a href={`/projects/${project.slug}`}>
+                      {project.title}
+                    </a>
+                  ))
+                }
+              </div>
+            </details>
+
+            <details class="mobile-section">
+              <summary>Writing</summary>
+
+              <div class="mobile-submenu">
+                <a
+                  href="https://garage.madebyal.net"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Garage ↗
+                </a>
+
+                {
+                  navWriting.map((item) => (
+                    <a href={`/writing/${item.slug}`}>
+                      {item.title}
+                    </a>
+                  ))
+                }
+              </div>
+            </details>
+          </div>
+
+          <div class="mobile-nav-group">
+            <p class="mobile-group-title">INFO</p>
+
+            <div class="mobile-info">
+              <a href="/about">About</a>
+              <a href="/now">Now</a>
+              <a href="/contact">Contact</a>
+            </div>
+          </div>
+        </div>
+      </details>
+    </header>
+
+
     <main>
       <slot />
     </main>
+
   </body>
 </html>
+
 
 <style is:global>
   * {
     box-sizing: border-box;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Montserrat", Arial, Helvetica, sans-serif;
+  }
+
+  .hero h1,
+  .intro h1,
+  .project-header h1,
+  .about-page h1,
+  .contact-page h1,
+  .writing-page h1,
+  .now-page h1 {
+    font-family: "Montserrat", Arial, Helvetica, sans-serif;
   }
 
   html,
@@ -71,7 +357,7 @@ const { title = "MADEBYAL" } = Astro.props;
     padding: 0;
     background: #fff;
     color: #171717;
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: "Nunito Sans", Arial, Helvetica, sans-serif;
   }
 
   body {
@@ -83,20 +369,46 @@ const { title = "MADEBYAL" } = Astro.props;
     text-decoration: none;
   }
 
+  a:focus-visible,
+  button:focus-visible,
+  summary:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid #171717;
+    outline-offset: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+
+  /* --------------------------------
+     DESKTOP SIDEBAR
+  -------------------------------- */
+
   .sidebar {
     position: fixed;
     top: 0;
     left: 0;
-    width: 220px;
+    width: 240px;
     height: 100vh;
     padding: 48px 36px;
     background: #fff;
+    z-index: 10;
   }
 
   .logo {
     display: block;
-    margin-bottom: 38px;
+    margin-bottom: 42px;
     font-size: 28px;
+    font-family: "Montserrat", Arial, Helvetica, sans-serif;
     font-weight: 800;
     letter-spacing: -1.2px;
   }
@@ -104,61 +416,255 @@ const { title = "MADEBYAL" } = Astro.props;
   nav {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 34px;
+  }
+
+  .nav-group {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .group-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    opacity: 0.45;
   }
 
   .section {
+    margin: 0;
+  }
+
+  .section summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  .section summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .section summary::after {
+    content: "+";
+    font-size: 14px;
+    font-weight: 400;
+    opacity: 0.45;
+  }
+
+  .section[open] > summary::after {
+    content: "−";
+  }
+
+  .submenu {
     display: flex;
     flex-direction: column;
     gap: 7px;
+    margin-top: 8px;
+    padding-left: 12px;
   }
 
-  .section-title {
-    font-weight: 700;
-    margin-bottom: 3px;
-  }
-
-  nav a {
+  .submenu a {
     font-size: 14px;
-    line-height: 1.2;
+    line-height: 1.25;
+    opacity: 0.72;
   }
 
-  nav a:hover {
-    opacity: 0.55;
-  }
-
-  .secondary {
+  .info-links {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin-top: 6px;
+    gap: 10px;
   }
 
+  .info-links a {
+    font-size: 14px;
+    line-height: 1.25;
+  }
+
+  nav a:hover,
+  nav summary:hover {
+    opacity: 0.5;
+  }
+
+
+  /* --------------------------------
+     MAIN CONTENT
+  -------------------------------- */
+
   main {
-    margin-left: 220px;
+    margin-left: 240px;
     min-height: 100vh;
     padding: 40px 36px 60px 24px;
   }
 
+
+  /* --------------------------------
+     MOBILE HEADER
+  -------------------------------- */
+
+  .mobile-header {
+    display: none;
+  }
+
+
+  /* --------------------------------
+     MOBILE
+  -------------------------------- */
+
   @media (max-width: 760px) {
+
     .sidebar {
-      position: static;
+      display: none !important;
+    }
+
+    .mobile-header {
+      display: flex;
+      position: relative;
       width: 100%;
-      height: auto;
-      padding: 24px;
+      padding: 22px 20px 18px;
+      align-items: flex-start;
+      justify-content: space-between;
+      background: #fff;
+      z-index: 100;
     }
 
-    .logo {
-      margin-bottom: 18px;
+    .mobile-logo {
+      display: block;
+      font-size: 22px;
+      font-family: "Montserrat", Arial, Helvetica, sans-serif;
+      font-weight: 800;
+      letter-spacing: -0.8px;
+      line-height: 1;
     }
 
-    nav {
+    .mobile-menu {
+      position: static;
+    }
+
+    .mobile-menu > summary {
+      cursor: pointer;
+      list-style: none;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .mobile-menu > summary::-webkit-details-marker {
       display: none;
+    }
+
+    .mobile-menu > summary::after {
+      content: " +";
+    }
+
+    .mobile-menu[open] > summary::after {
+      content: " −";
+    }
+
+    .mobile-panel {
+      position: absolute;
+      top: 62px;
+      left: 0;
+      width: 100%;
+      min-height: calc(100vh - 62px);
+
+      display: flex;
+      flex-direction: column;
+      gap: 38px;
+
+      padding: 26px 20px 44px;
+
+      background: #fff;
+      border-top: 1px solid #eee;
+    }
+
+    .mobile-nav-group {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .mobile-group-title {
+      margin: 0;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      opacity: 0.45;
+    }
+
+    .mobile-section {
+      border-bottom: 1px solid #eee;
+      padding-bottom: 16px;
+    }
+
+    .mobile-section > summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      cursor: pointer;
+      list-style: none;
+
+      font-size: 19px;
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+
+    .mobile-section > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .mobile-section > summary::after {
+      content: "+";
+      font-size: 18px;
+      font-weight: 400;
+      opacity: 0.45;
+    }
+
+    .mobile-section[open] > summary::after {
+      content: "−";
+    }
+
+    .mobile-submenu {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 14px 0 2px 16px;
+    }
+
+    .mobile-submenu a {
+      display: block;
+      font-size: 16px;
+      line-height: 1.35;
+      opacity: 0.72;
+    }
+
+    .mobile-info {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .mobile-info a {
+      display: block;
+      font-size: 19px;
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
     }
 
     main {
       margin-left: 0;
-      padding: 0 16px 40px;
+      padding: 8px 16px 50px;
     }
   }
 </style>

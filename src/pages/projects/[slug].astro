@@ -1,0 +1,391 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { sanity, urlFor } from "../../lib/sanity";
+
+export async function getStaticPaths() {
+  const projects = await sanity.fetch(`
+    *[_type == "project" && defined(slug.current)]{
+      "slug": slug.current
+    }
+  `);
+
+  return projects.map((project) => ({
+    params: { slug: project.slug },
+  }));
+}
+
+const { slug } = Astro.params;
+
+const project = await sanity.fetch(
+  `
+    *[_type == "project" && slug.current == $slug][0]{
+      title,
+      projectType,
+      year,
+      coverImage,
+      summary,
+      description,
+      embedUrl,
+      images,
+      credits
+    }
+  `,
+  { slug }
+);
+
+if (!project) {
+  return Astro.redirect("/projects");
+}
+
+const typeLabels: Record<string, string> = {
+  personal: "Personal Project",
+  bts: "Behind the Scenes",
+  collaborative: "Collaborative Project",
+  audio: "Podcast / Audio",
+  other: "Other",
+};
+
+function imageUrl(image: any, width = 2000) {
+  if (!image) return null;
+
+  return urlFor(image)
+    .width(width)
+    .quality(88)
+    .url();
+}
+
+function getEmbed(url: string) {
+  if (!url) return null;
+
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.replace("www.", "");
+
+    if (hostname.includes("youtube.com") || hostname.includes("youtu.be")) {
+      let id = "";
+
+      if (hostname.includes("youtu.be")) {
+        id = parsed.pathname.split("/").filter(Boolean)[0] ?? "";
+      } else {
+        id = parsed.searchParams.get("v") ?? "";
+
+        if (!id && parsed.pathname.includes("/embed/")) {
+          id = parsed.pathname.split("/embed/")[1]?.split("/")[0] ?? "";
+        }
+
+        if (!id && parsed.pathname.includes("/shorts/")) {
+          id = parsed.pathname.split("/shorts/")[1]?.split("/")[0] ?? "";
+        }
+      }
+
+      return id
+        ? {
+            type: "video",
+            src: `https://www.youtube.com/embed/${id}`,
+          }
+        : null;
+    }
+
+    if (hostname.includes("vimeo.com")) {
+      const id = parsed.pathname.split("/").filter(Boolean).pop();
+
+      return id
+        ? {
+            type: "video",
+            src: `https://player.vimeo.com/video/${id}`,
+          }
+        : null;
+    }
+
+    if (hostname.includes("spotify.com")) {
+      const parts = parsed.pathname.split("/").filter(Boolean);
+
+      const typeIndex = parts.findIndex((part) =>
+        ["show", "episode", "track", "album", "playlist"].includes(part)
+      );
+
+      if (typeIndex !== -1 && parts[typeIndex + 1]) {
+        const type = parts[typeIndex];
+        const id = parts[typeIndex + 1];
+
+        return {
+          type: "spotify",
+          src: `https://open.spotify.com/embed/${type}/${id}`,
+        };
+      }
+    }
+
+    if (hostname.includes("soundcloud.com")) {
+      return {
+        type: "soundcloud",
+        src: `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}`,
+      };
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+const embed = getEmbed(project.embedUrl);
+
+const coverImageUrl = project.coverImage
+  ? imageUrl(project.coverImage, 2000)
+  : null;
+
+const seoTitle =
+  `${project.title} — ${typeLabels[project.projectType] ?? "Project"} | MADEBYAL`;
+
+const seoDescription =
+  project.summary ||
+  project.description ||
+  `${project.title} — a creative project by Berlin-based filmmaker and photographer Al Amin Ibrahim.`;
+---
+
+<Layout
+  title={seoTitle}
+  description={seoDescription}
+  image={coverImageUrl}
+>
+  <article class="project-page">
+
+    <header class="project-header">
+      <div>
+        <p class="eyebrow">
+          {typeLabels[project.projectType] ?? project.projectType}
+        </p>
+
+        <h1>{project.title}</h1>
+      </div>
+
+      {project.year && (
+        <p class="year">{project.year}</p>
+      )}
+    </header>
+
+    {
+      project.coverImage && (
+        <img
+          class="cover"
+          src={coverImageUrl}
+          alt={project.title}
+        />
+      )
+    }
+
+    {
+      project.summary && (
+        <section class="summary">
+          <p>{project.summary}</p>
+        </section>
+      )
+    }
+
+    {
+      embed && (
+        <section class:list={["embed", embed.type]}>
+          <iframe
+            src={embed.src}
+            title={`${project.title} media`}
+            allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+            referrerpolicy="strict-origin-when-cross-origin"
+            allowfullscreen
+          />
+        </section>
+      )
+    }
+
+    {
+      project.description && (
+        <section class="description">
+          <p>{project.description}</p>
+        </section>
+      )
+    }
+
+    {
+      project.images?.length > 0 && (
+        <section class="gallery">
+          {project.images.map((image) => (
+            <img
+              src={imageUrl(image, 1800)}
+              alt={image.alt || project.title}
+              loading="lazy"
+            />
+          ))}
+        </section>
+      )
+    }
+
+    {
+      project.credits && (
+        <section class="credits">
+          <p class="section-label">Credits / Collaborators</p>
+          <p>{project.credits}</p>
+        </section>
+      )
+    }
+
+    <footer class="back">
+      <a href="/projects">← All Projects</a>
+    </footer>
+
+  </article>
+</Layout>
+
+<style>
+  .project-page {
+    width: 100%;
+    padding: 18px 0 80px;
+  }
+
+  .project-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 40px;
+    margin-bottom: 40px;
+  }
+
+  .eyebrow,
+  .section-label {
+    margin: 0 0 12px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.55;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(42px, 5vw, 76px);
+    line-height: 0.98;
+    letter-spacing: -0.045em;
+  }
+
+  .year {
+    margin: 0;
+    font-size: 14px;
+    color: #777;
+  }
+
+  .cover {
+    display: block;
+    width: 100%;
+    max-height: 78vh;
+    object-fit: cover;
+  }
+
+  .summary {
+    max-width: 760px;
+    padding: 48px 0;
+  }
+
+  .summary p {
+    margin: 0;
+    font-size: clamp(22px, 2.2vw, 32px);
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+  }
+
+  .embed {
+    margin: 20px 0 60px;
+  }
+
+  .embed iframe {
+    display: block;
+    width: 100%;
+    border: 0;
+  }
+
+  .embed.video iframe {
+    aspect-ratio: 16 / 9;
+  }
+
+  .embed.spotify iframe {
+    height: 352px;
+  }
+
+  .embed.soundcloud iframe {
+    height: 166px;
+  }
+
+  .description {
+    max-width: 760px;
+    padding: 0 0 60px;
+  }
+
+  .description p {
+    margin: 0;
+    white-space: pre-line;
+    font-size: 17px;
+    line-height: 1.6;
+  }
+
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    padding: 0 0 70px;
+  }
+
+  .gallery img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .gallery img:nth-child(3n + 1) {
+    grid-column: 1 / -1;
+  }
+
+  .credits {
+    display: grid;
+    grid-template-columns: 180px minmax(0, 600px);
+    gap: 30px;
+    padding: 60px 0;
+    border-top: 1px solid #ddd;
+  }
+
+  .credits p {
+    margin: 0;
+    white-space: pre-line;
+    line-height: 1.55;
+  }
+
+  .back {
+    padding-top: 30px;
+    border-top: 1px solid #ddd;
+  }
+
+  .back a {
+    font-size: 14px;
+  }
+
+  .back a:hover {
+    opacity: 0.55;
+  }
+
+  @media (max-width: 900px) {
+    .project-header {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .gallery {
+      grid-template-columns: 1fr;
+    }
+
+    .gallery img:nth-child(3n + 1) {
+      grid-column: auto;
+    }
+
+    .credits {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+  }
+</style>

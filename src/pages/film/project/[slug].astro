@@ -1,0 +1,320 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import { sanity, urlFor } from "../../../lib/sanity";
+
+export async function getStaticPaths() {
+  const projects = await sanity.fetch(`
+    *[_type == "filmProject" && defined(slug.current)]{
+      "slug": slug.current
+    }
+  `);
+
+  return projects.map((project) => ({
+    params: { slug: project.slug },
+  }));
+}
+
+const { slug } = Astro.params;
+
+const project = await sanity.fetch(
+  `
+    *[_type == "filmProject" && slug.current == $slug][0]{
+      title,
+      category,
+      videoUrl,
+      poster,
+      client,
+      year,
+      role,
+      description,
+      credits
+    }
+  `,
+  { slug }
+);
+
+if (!project) {
+  return Astro.redirect("/film");
+}
+
+const categoryLabels: Record<string, string> = {
+  documentary: "Documentary",
+  podcast: "People + Ideas",
+  events: "Events",
+  commercial: "Commercial",
+  "film-music": "Film + Music",
+};
+
+const categoryRoutes: Record<string, string> = {
+  documentary: "/film/documentary",
+  podcast: "/film/people-ideas",
+  events: "/film/events",
+  commercial: "/film/commercial",
+  "film-music": "/film/film-music",
+};
+
+function getEmbedUrl(url: string) {
+  if (!url) return null;
+
+  try {
+    const parsed = new URL(url);
+
+    if (
+      parsed.hostname.includes("youtube.com") ||
+      parsed.hostname.includes("youtu.be")
+    ) {
+      let id = "";
+
+      if (parsed.hostname.includes("youtu.be")) {
+        id = parsed.pathname.split("/").filter(Boolean)[0] ?? "";
+      } else {
+        id = parsed.searchParams.get("v") ?? "";
+
+        if (!id && parsed.pathname.includes("/embed/")) {
+          id = parsed.pathname.split("/embed/")[1]?.split("/")[0] ?? "";
+        }
+
+        if (!id && parsed.pathname.includes("/shorts/")) {
+          id = parsed.pathname.split("/shorts/")[1]?.split("/")[0] ?? "";
+        }
+      }
+
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+
+    if (parsed.hostname.includes("vimeo.com")) {
+      const id = parsed.pathname.split("/").filter(Boolean).pop();
+
+      return id ? `https://player.vimeo.com/video/${id}` : null;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+const embedUrl = getEmbedUrl(project.videoUrl);
+
+const posterUrl = project.poster
+  ? urlFor(project.poster).width(2200).quality(90).url()
+  : null;
+
+const seoDescription =
+  project.description ||
+  `${project.title} — a ${categoryLabels[project.category] ?? "film"} project by Berlin-based filmmaker Al Amin Ibrahim.`;
+
+const seoTitle =
+  `${project.title} — ${categoryLabels[project.category] ?? "Film"} | MADEBYAL`;
+---
+
+<Layout
+  title={seoTitle}
+  description={seoDescription}
+  image={posterUrl}
+>
+  <article class="project-page">
+
+    <header class="project-header">
+      <div class="project-heading">
+        <p class="category">
+          {categoryLabels[project.category] ?? project.category}
+        </p>
+
+        <h1>{project.title}</h1>
+      </div>
+
+      <div class="project-info">
+        {project.client && (
+          <div>
+            <span>Client</span>
+            <p>{project.client}</p>
+          </div>
+        )}
+
+        {project.year && (
+          <div>
+            <span>Year</span>
+            <p>{project.year}</p>
+          </div>
+        )}
+
+        {project.role && (
+          <div>
+            <span>Role</span>
+            <p>{project.role}</p>
+          </div>
+        )}
+      </div>
+    </header>
+
+    <section class="film">
+      {
+        embedUrl ? (
+          <iframe
+            src={embedUrl}
+            title={project.title}
+            allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+            referrerpolicy="strict-origin-when-cross-origin"
+            allowfullscreen
+          />
+        ) : posterUrl ? (
+          <img src={posterUrl} alt={project.title} />
+        ) : (
+          <div class="placeholder"></div>
+        )
+      }
+    </section>
+
+    {
+      project.description && (
+        <section class="description">
+          <p>{project.description}</p>
+        </section>
+      )
+    }
+
+    {
+      project.credits && (
+        <section class="credits">
+          <p class="section-label">Credits</p>
+          <p>{project.credits}</p>
+        </section>
+      )
+    }
+    
+    <footer class="back">
+      <a href={categoryRoutes[project.category] ?? "/film"}>
+        ← {categoryLabels[project.category] ?? "Film"}
+      </a>
+    </footer>
+
+  </article>
+</Layout>
+
+<style>
+  .project-page {
+    width: 100%;
+    padding: 18px 0 80px;
+  }
+
+  .project-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.6fr);
+    gap: 60px;
+    margin-bottom: 42px;
+  }
+
+  .category,
+  .section-label {
+    margin: 0 0 12px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.55;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(42px, 5vw, 76px);
+    line-height: 0.98;
+    letter-spacing: -0.045em;
+  }
+
+  .project-info {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px 30px;
+    align-content: end;
+  }
+
+  .project-info div {
+    min-width: 0;
+  }
+
+  .project-info span {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.45;
+  }
+
+  .project-info p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .film {
+    width: 100%;
+  }
+
+  .film iframe,
+  .film img,
+  .placeholder {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: 0;
+    background: #111;
+    object-fit: cover;
+  }
+
+  .description {
+    max-width: 760px;
+    padding: 48px 0 0;
+  }
+
+  .description p {
+    margin: 0;
+    font-size: clamp(22px, 2.2vw, 32px);
+    line-height: 1.3;
+    letter-spacing: -0.02em;
+  }
+
+  .credits {
+    display: grid;
+    grid-template-columns: 180px minmax(0, 600px);
+    gap: 30px;
+    padding: 70px 0;
+  }
+
+  .credits p {
+    margin: 0;
+    white-space: pre-line;
+    line-height: 1.55;
+  }
+
+  .back {
+    padding-top: 30px;
+    border-top: 1px solid #ddd;
+  }
+
+  .back a {
+    font-size: 14px;
+  }
+
+  .back a:hover {
+    opacity: 0.55;
+  }
+
+  @media (max-width: 900px) {
+    .project-header {
+      grid-template-columns: 1fr;
+      gap: 28px;
+    }
+
+    .project-info {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .credits {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+  }
+</style>

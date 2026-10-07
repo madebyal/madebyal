@@ -1,0 +1,76 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout
+  title="Page Not Found — MADEBYAL"
+  description="The page you were looking for could not be found."
+  noindex={true}
+>
+  <section class="not-found">
+    <p class="eyebrow">404</p>
+
+    <h1>Well... that's embarassing.</h1>
+
+    <p class="intro">
+      It's not because of anything you've done though. I've probably just moved the page elsewhere.
+    </p>
+
+    <div class="links">
+      <a href="/">Home</a>
+      <a href="/film">Film</a>
+      <a href="/photography">Photography</a>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .not-found {
+    max-width: 900px;
+    min-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 40px 0 80px;
+  }
+
+  .eyebrow {
+    margin: 0 0 16px;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.55;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(42px, 5vw, 76px);
+    line-height: 0.98;
+    letter-spacing: -0.045em;
+  }
+
+  .intro {
+    margin: 20px 0 0;
+    font-size: 18px;
+    line-height: 1.5;
+    color: #555;
+  }
+
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-top: 40px;
+  }
+
+  .links a {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .links a:hover {
+    opacity: 0.5;
+  }
+</style>

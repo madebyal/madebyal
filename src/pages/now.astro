@@ -1,0 +1,148 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { PortableText } from "@portabletext/astro";
+import { sanity, urlFor } from "../lib/sanity";
+
+const page = await sanity.fetch(`
+  *[_type == "page" && slug.current == "now"][0]{
+    title,
+    headline,
+    intro,
+    heroImage,
+    body
+  }
+`);
+
+const heroImage = page?.heroImage
+  ? urlFor(page.heroImage)
+      .width(1800)
+      .quality(88)
+      .url()
+  : null;
+---
+
+<Layout
+  title="Now — What Al Amin Is Working On | MADEBYAL"
+  description="Current work, projects and things Al Amin Ibrahim is thinking about as a writer, filmmaker, and photographer."
+>
+  <section class="now-page">
+
+    <header class="intro">
+      <p class="eyebrow">Now</p>
+
+      <h1>
+        {page?.headline || "What I’m up to"}
+      </h1>
+
+      {
+        page?.intro && (
+          <p class="description">
+            {page.intro}
+          </p>
+        )
+      }
+    </header>
+
+    {
+      heroImage && (
+        <img
+          class="hero-image"
+          src={heroImage}
+          alt={page?.heroImage?.alt || "Now"}
+        />
+      )
+    }
+
+    <section class="content">
+      {
+        page?.body?.length > 0 ? (
+          <PortableText value={page.body} />
+        ) : (
+          <p>Add your current updates in Sanity.</p>
+        )
+      }
+    </section>
+
+  </section>
+</Layout>
+
+<style>
+  .now-page {
+    width: 100%;
+    padding: 18px 0 100px;
+  }
+
+  .intro {
+    max-width: 900px;
+    padding-bottom: 25px;
+  }
+
+  .eyebrow {
+    margin: 0 0 12px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.55;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(42px, 5vw, 76px);
+    line-height: 0.98;
+    letter-spacing: -0.045em;
+  }
+
+  .description {
+    max-width: 680px;
+    margin: 24px 0 0;
+    font-size: 19px;
+    line-height: 1.5;
+    color: #555;
+  }
+
+  .hero-image {
+    display: block;
+    width: 100%;
+    max-height: 70vh;
+    object-fit: cover;
+    margin-bottom: 60px;
+  }
+
+  .content {
+    max-width: 760px;
+    padding-top: 20px;
+    border-top: 1px solid #ddd;
+  }
+
+  .content :global(p) {
+    margin: 0 0 28px;
+    font-size: 17px;
+    line-height: 1.65;
+  }
+
+  .content :global(h2) {
+    margin: 52px 0 18px;
+    font-size: 30px;
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+  }
+
+  .content :global(h3) {
+    margin: 38px 0 14px;
+    font-size: 20px;
+  }
+
+  .content :global(ul),
+  .content :global(ol) {
+    margin: 0 0 28px;
+    padding-left: 24px;
+    font-size: 17px;
+    line-height: 1.65;
+  }
+
+  .content :global(a) {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+</style>
