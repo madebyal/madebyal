@@ -2,6 +2,7 @@
 import Layout from "../layouts/Layout.astro";
 import { PortableText } from "@portabletext/astro";
 import { sanity, urlFor } from "../lib/sanity";
+import PortableTextLink from "../components/PortableTextLink.astro";
 
 const page = await sanity.fetch(`
   *[_type == "page" && slug.current == "about"][0]{
@@ -22,6 +23,13 @@ const portrait = page?.heroImage
       .quality(88)
       .url()
   : null;
+
+const components = {
+  mark: {
+    link: PortableTextLink,
+  },
+};
+
 ---
 
 <Layout
@@ -68,7 +76,10 @@ const portrait = page?.heroImage
       <div class="about-copy">
         {
           page?.body?.length > 0 ? (
-            <PortableText value={page.body} />
+            <PortableText 
+              value={page.body}
+              components={components}
+             />
           ) : (
             <p>Add your About text in Sanity.</p>
           )
